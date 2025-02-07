@@ -1,0 +1,5 @@
+# Ignore downloaded artifacts
+/artifacts/*
+
+# Ignores all the saved parquets
+/bin/*
