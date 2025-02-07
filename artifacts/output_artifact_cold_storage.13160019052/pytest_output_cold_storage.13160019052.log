@@ -1,0 +1,50 @@
+============================= test session starts ==============================
+created: 2/2 workers
+2 workers [5 items]
+
+scheduling tests via LoadScheduling
+
+cold_storage_test.py::test_boto_upload_object_with_cold_storage_class 
+cold_storage_test.py::test_boto_object_with_custom_metadata_acls_and_storage_class 
+[gw1] [ 20%] PASSED cold_storage_test.py::test_boto_object_with_custom_metadata_acls_and_storage_class 
+cold_storage_test.py::test_boto_list_objects_with_cold_storage_class 
+[gw0] [ 40%] PASSED cold_storage_test.py::test_boto_upload_object_with_cold_storage_class 
+cold_storage_test.py::test_boto_change_object_class_to_cold_storage 
+[gw1] [ 60%] PASSED cold_storage_test.py::test_boto_list_objects_with_cold_storage_class 
+cold_storage_test.py::test_boto_multipart_upload_with_cold_storage_class 
+[gw0] [ 80%] PASSED cold_storage_test.py::test_boto_change_object_class_to_cold_storage 
+[gw1] [100%] PASSED cold_storage_test.py::test_boto_multipart_upload_with_cold_storage_class 
+
+=========================================== fixture duration top ============================================
+total          name                                                         num avg            min           
+0:00:06.363810                                         existing_bucket_name   3 0:00:02.274832 0:00:01.384098
+0:00:04.678745                                       bucket_with_one_object   2 0:00:02.339373 0:00:01.615387
+0:00:01.915783                    bucket_with_one_storage_class_cold_object   1 0:00:01.915783 0:00:01.915783
+0:00:00.781669                                                    s3_client   5 0:00:00.079825 0:00:00.068942
+0:00:00.006957                                                  test_params   5 0:00:00.001336 0:00:00.001120
+0:00:13.748100                                                  grand total  22 0:00:00.079825 0:00:00.000019
+========================================== test call duration top ===========================================
+total          name                                                         num avg            min           
+0:00:09.859479           test_boto_multipart_upload_with_cold_storage_class   1 0:00:09.859479 0:00:09.859479
+0:00:04.969366              test_boto_upload_object_with_cold_storage_class   1 0:00:04.969366 0:00:04.969366
+0:00:04.224375                test_boto_change_object_class_to_cold_storage   1 0:00:04.224375 0:00:04.224375
+0:00:01.402060 test_boto_object_with_custom_metadata_acls_and_storage_class   1 0:00:01.402060 0:00:01.402060
+0:00:00.192506               test_boto_list_objects_with_cold_storage_class   1 0:00:00.192506 0:00:00.192506
+0:00:20.647786                                                  grand total   5 0:00:04.224375 0:00:00.192506
+========================================== test setup duration top ==========================================
+total          name                                                         num avg            min           
+0:00:03.601934               test_boto_list_objects_with_cold_storage_class   1 0:00:03.601934 0:00:03.601934
+0:00:03.144788                test_boto_change_object_class_to_cold_storage   1 0:00:03.144788 0:00:03.144788
+0:00:02.984741              test_boto_upload_object_with_cold_storage_class   1 0:00:02.984741 0:00:02.984741
+0:00:02.554495 test_boto_object_with_custom_metadata_acls_and_storage_class   1 0:00:02.554495 0:00:02.554495
+0:00:01.464446           test_boto_multipart_upload_with_cold_storage_class   1 0:00:01.464446 0:00:01.464446
+0:00:13.750404                                                  grand total   5 0:00:02.984741 0:00:01.464446
+======================================== test teardown duration top =========================================
+total          name                                                         num avg            min           
+0:00:02.966416           test_boto_multipart_upload_with_cold_storage_class   1 0:00:02.966416 0:00:02.966416
+0:00:02.193814                test_boto_change_object_class_to_cold_storage   1 0:00:02.193814 0:00:02.193814
+0:00:01.733987 test_boto_object_with_custom_metadata_acls_and_storage_class   1 0:00:01.733987 0:00:01.733987
+0:00:01.647652               test_boto_list_objects_with_cold_storage_class   1 0:00:01.647652 0:00:01.647652
+0:00:01.421735              test_boto_upload_object_with_cold_storage_class   1 0:00:01.421735 0:00:01.421735
+0:00:09.963605                                                  grand total   5 0:00:01.733987 0:00:01.421735
+============================== 5 passed in 26.17s ==============================
