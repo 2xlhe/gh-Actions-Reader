@@ -6,7 +6,6 @@ class PytestArtifactLogExtractor:
     """f
     A class to extract and process test status and timing information from a pytest artifact log.
     """
-
     def __init__(self, path: str):
         """
         Initializes the PytestArtifactLogExtractor object.
@@ -34,20 +33,20 @@ class PytestArtifactLogExtractor:
         :return: A DataFrame combining test statuses with time metrics.
         """
 
-        df_parquet = ArqManipulation.read_parquet_file(parquet_file_name='pytest.log.parquet')   
+        #df_parquet = ArqManipulation.read_parquet_file(parquet_file_name='pytest.log.parquet')   
 
         databaseId = self.__extract_self_path_info__().get('databaseId').get(0)
-        databaseId = int(databaseId) if databaseId else None 
+        databaseId = int(databaseId) if databaseId else 000000
     
-        if not df_parquet.empty and (databaseId in df_parquet['databaseId']):
-            return df_parquet
+        #if not df_parquet.empty and (databaseId in df_parquet['databaseId']):
+        #    return df_parquet
 
         tests, categories, failures = self.__extract_all_categories__()
-        
+
         # Creating dataframes test status and categories
-        status_df = self.__create_status_df__(tests).set_index('name')
+        status_df = self.__create_status_df__(tests)
         categories_df = self.__create_time_df__(categories)
-        failures_df = pd.DataFrame(failures, columns=['name', 'category', 'arguments', 'error', 'error_details']).set_index('name')
+        failures_df = self.__create_failure_df__(failures)
 
         # Labeling the dfs
         status_df.index.name = 'pytest_tests_status'
@@ -62,10 +61,24 @@ class PytestArtifactLogExtractor:
 
         return status_df, categories_df, failures_df
 
-    def __create_status_df__(self, data):
-        formatted_data = []
+    def __get_list_by_name__(self, data: list, name: str):
+        """
+        Find the sublist containing the specified name in the first element.
 
-        return pd.DataFrame(formatted_data, columns=["status", "name", "category", "arguments"])
+        :param data: A list of sublists to search through.
+        :type data: list[list]
+        :param name: The name to search for in the first element of each sublist.
+        :type name: str
+        :return: A list of sublists where the first element matches the name.
+        :rtype: list[list]
+        """
+        matching_sublists = []
+        
+        for sublist in data:
+            if re.search(name, sublist[0]):  # Converte os itens para string
+                matching_sublists.append(sublist)
+        
+        return matching_sublists
 
     def __extract_all_categories__(self):
         """
@@ -97,42 +110,10 @@ class PytestArtifactLogExtractor:
         # Ignore cases of logging mode is active
         if not 'live log' in self.data:
             headers = self.__extract_test_status_names__(self.__get_list_by_name__(header, 'test session')[0])    
-        categories = self.__extract_categories__(self.__get_list_by_name__(header, 'duration top'))
+        categories = self.__extract_time_categories__(self.__get_list_by_name__(header, 'duration top'))
         failures = self.__extract_failures_errors__(self.__get_list_by_name__(header, 'summary'))
 
         return headers, categories, failures
-
-    def __extract_categories__(self, data):
-        categories = []
-        for d in data:
-            categories.append([])
-            for s in d: 
-                formatted_s = list(filter(None,s.split(" ")))
-                if 'duration' in formatted_s: #converting the header name back into string
-                    formatted_s = '_'.join(formatted_s)
-                categories[-1].append(formatted_s)
-
-        return categories
-
-
-    def __get_list_by_name__(self, data: list, name: str):
-        """
-        Find the sublist containing the specified name in the first element.
-
-        :param data: A list of sublists to search through.
-        :type data: list[list]
-        :param name: The name to search for in the first element of each sublist.
-        :type name: str
-        :return: A list of sublists where the first element matches the name.
-        :rtype: list[list]
-        """
-        matching_sublists = []
-        
-        for sublist in data:
-            if re.search(name, sublist[0]):  # Converte os itens para string
-                matching_sublists.append(sublist)
-        
-        return matching_sublists
 
     def __extract_test_status_names__(self, data):
         """
@@ -161,6 +142,18 @@ class PytestArtifactLogExtractor:
                 tests.append(tmp)
 
         return tests
+    
+    def __extract_time_categories__(self, data):
+        categories = []
+        for d in data:
+            categories.append([])
+            for s in d: 
+                formatted_s = list(filter(None,s.split(" ")))
+                if 'duration' in formatted_s: #converting the header name back into string
+                    formatted_s = ' '.join(formatted_s)
+                categories[-1].append(formatted_s)
+
+        return categories
 
     def __extract_failures_errors__(self, data):
 
@@ -174,31 +167,46 @@ class PytestArtifactLogExtractor:
         # Some test wont have errors, but there still need a dataframe
         if not data:
             return [[None]*5]
-        data = data[0]
 
-        print(data)
 
-        # Regex asks for a string, cleaning it and concatening the list
-        data_str = ''.join(list(''.join(d) for d in data[1:]))
-        data_str = list(filter(None, re.split(r'(FAILED|ERROR)', data_str)))
+        keywords = ['PASSED','FAILED','ERROR']
+        failures = []
+        
+        for line in data[0]:
+            if any(k in line for k in keywords):
+                match = re.search(r'(PASSED|FAILED|ERROR).*', line).group()
+                # Splitting the Keyword NameTest from category and argument
+                match = re.split(r'::', match, 1)
+                tmp = re.split('\s', match[0], maxsplit=1)
+                # Splitting the category from arguments
+                tmp1 = re.split(r'\[', match[1], maxsplit=1)
+                tmp2 = re.split(r'\] - ', tmp1[1], maxsplit=1)
+                
+                # Splitting error name from its description
+                tmp.append(tmp1[0])
+                tmp += re.split(r':| ', tmp2[1], maxsplit=1)
 
-        splitted_data = []
+                # Allow degenerated data to fit in the dataframe
+                while(len(tmp) < 5):
+                    tmp.append(None)
 
-        # Splitting test from error
-        for d in data_str:
-            if d and ('FAILED' or 'ERROR') not in d:
-                splitted_data.append(list(filter(None, re.split(r'\[(.*?)\]-|::|(\w+):([\w=*]+)', d))))
+                failures.append(tmp)
 
-        cleaned_splitted_data = []
+        return failures
 
-        for s in splitted_data:
-            if len(s) > 5:
-                    s[5] = " ".join(s[5:])
-            cleaned_splitted_data.append(s[:5])
+    def __create_status_df__(self, data):
+        formatted_data = []
 
-        return cleaned_splitted_data
+        for d in data:
+            if 'live_log' not in d:
+                formatted_data.append(d)
 
-    def __create_time_df__(self, values):
+        df = pd.DataFrame(formatted_data, columns=["status", "category", "name", "arguments"])
+        df['name'] = df['name'].astype(str).str.replace(" ", "", regex=True)
+        df = df.set_index('name')
+        return df
+
+    def __create_time_df__(self, data):
         """
         Converts extracted timing information into DataFrames.
 
@@ -207,7 +215,7 @@ class PytestArtifactLogExtractor:
         """
         dfs = pd.DataFrame()
         
-        for h in values:
+        for h in data:
             time_df = pd.DataFrame(h[2:], columns=h[1])
 
             # Converting time-related columns to datetime.time format
@@ -225,6 +233,9 @@ class PytestArtifactLogExtractor:
             dfs = dfs.set_index('name')
 
         return dfs
+
+    def __create_failure_df__(self, data):
+        return pd.DataFrame(data, columns=['status', 'category', 'name', 'error', 'error_details']).set_index('name').dropna()
 
     def __extract_self_path_info__(self):
         """
