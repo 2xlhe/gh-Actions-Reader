@@ -1,6 +1,7 @@
 from actions import ArqManipulation
 import pandas as pd
 import re
+from numpy.lib.stride_tricks import sliding_window_view as swv
 
 class PytestArtifactLogExtractor:
     """f
@@ -33,17 +34,17 @@ class PytestArtifactLogExtractor:
         :return: A DataFrame combining test statuses with time metrics.
         """
 
-        #df_parquet = ArqManipulation.read_parquet_file(parquet_file_name='pytest.log.parquet')   
-
+        # Retrieving databaseID out of path
         databaseId = self.__extract_self_path_info__().get('databaseId').get(0)
         databaseId = int(databaseId) if databaseId else 000000
     
-        #if not df_parquet.empty and (databaseId in df_parquet['databaseId']):
-        #    return df_parquet
-
-        tests, categories, failures = self.__extract_all_categories__()
-
+        # Checking if artifacts is not already stored
+        df_status_parquet = ArqManipulation.read_parquet_file(parquet_file_name='./bin/pytest.status.log.parquet')   
+        df_categories_parquet = ArqManipulation.read_parquet_file(parquet_file_name='./bin/pytest.categories.log.parquet')   
+        df_failures_parquet = ArqManipulation.read_parquet_file(parquet_file_name='./bin/pytest.failures.log.parquet')   
+        
         # Creating dataframes test status and categories
+        tests, categories, failures = self.__extract_all_categories__()
         status_df = self.__create_status_df__(tests)
         categories_df = self.__create_time_df__(categories)
         failures_df = self.__create_failure_df__(failures)
@@ -59,7 +60,19 @@ class PytestArtifactLogExtractor:
         failures_df['databaseId'] = databaseId
 
 
-        return status_df, categories_df, failures_df
+        # Since there is data on the parquets, concatenating both
+        concated_dfs = (pd.concat([df_status_parquet, status_df], axis=0).drop_duplicates(),
+                        pd.concat([df_categories_parquet, categories_df], axis=0).drop_duplicates(), 
+                        pd.concat([df_failures_parquet, failures_df], axis=0).drop_duplicates()
+                        )   
+         
+
+        # Save the concatenated DataFrames back to Parquet files
+        ArqManipulation.save_df_to_parquet(df=concated_dfs[0], parquet_file_name='./bin/pytest.status.log.parquet')
+        ArqManipulation.save_df_to_parquet(df=concated_dfs[1], parquet_file_name='./bin/pytest.categories.log.parquet')
+        ArqManipulation.save_df_to_parquet(df=concated_dfs[2], parquet_file_name='./bin/pytest.failures.log.parquet')
+
+        return concated_dfs
 
     def __get_list_by_name__(self, data: list, name: str):
         """

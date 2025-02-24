@@ -6,7 +6,6 @@ import subprocess
 import re
 import json
 
-
 class ArqManipulation:
     """
     A utility class for file operations and data manipulation.
@@ -22,7 +21,6 @@ class ArqManipulation:
         """
         try:
             if not os.path.exists(parquet_file_name):
-                #print(f"File '{parquet_file_name}' does not exist.")
                 return pd.DataFrame()
             
             return pd.read_parquet(parquet_file_name)
@@ -40,7 +38,6 @@ class ArqManipulation:
         try:
             os.makedirs(os.path.dirname(parquet_file_name), exist_ok=True)
             df.to_parquet(parquet_file_name)
-            print(f"DataFrame successfully saved to {parquet_file_name}")
         except Exception as e:
             raise RuntimeError(f"Error saving DataFrame to Parquet file '{parquet_file_name}': {e}")
 
@@ -96,7 +93,7 @@ class ActionsArtifacts:
     A class to handle downloading, retrieving, and deleting GitHub Actions artifacts.
     """
 
-    def __init__(self, repository: str):
+    def __init__(self, jobIds: list, repository: str):
         """
         Initializes the ActionsArtifacts object.
 
@@ -105,8 +102,10 @@ class ActionsArtifacts:
         self.repository = repository
         self.folder = 'artifacts/'  # Default storage dir
         self.paths = self.retrieve_downloaded_artifacts() 
+        self.jobIds: set = set(jobIds)
+        self.download_artifact()
 
-    def download_artifact(self, database_id: str):
+    def download_artifact(self: str):
         """
         Downloads an artifact from GitHub Actions using the GitHub CLI.
 
@@ -115,15 +114,13 @@ class ActionsArtifacts:
         try:
             # Ensure the folder exists before downloading
             os.makedirs(self.folder, exist_ok=True)
+            # Finding the artifacts that have yet to be downloaded
+            to_download = self.jobIds.difference(set(p.split('/')[1] for p in self.paths))
 
+            for database_id in to_download:
             # Construct the command to download the artifact
-            command = f'gh run --repo {self.repository} download {database_id} --dir {os.path.join(self.folder, str(database_id))}'
-
-            # Execute the command
-            subprocess.run(command, shell=True, text=True, check=True)
-            print("Download Successful")
-        except subprocess.CalledProcessError as e:
-            print(f"Error during artifact download: {e}")
+                command=f'gh run --repo {self.repository} download {database_id} --dir {os.path.join(self.folder, str(database_id))}'
+                subprocess.run(command, shell=True, text=True, check=False)
         except Exception as e:
             print(f"Unexpected error: {e}")
 
@@ -182,6 +179,7 @@ class ActionsWorkflow:
         :return: A DataFrame containing the parsed workflow data.
         """
         try:
+
             list_command = f'gh run --repo {self.repository} list {self.json_attributes} -L {self.query_size}'
             
             output_json = subprocess.run(
@@ -191,7 +189,10 @@ class ActionsWorkflow:
             parsed_json = ArqManipulation.parse_stdout_json(output_json)
             df = ArqManipulation.json_to_df(parsed_json)
 
-            ArqManipulation.save_df_to_parquet(df = df, parquet_file_name="./bin/actionsWorflow.parquet")
+            saved_parquet_df = ArqManipulation.read_parquet_file('./bin/actions_workflow.parquet')
+            df_cleared = pd.concat([saved_parquet_df, df], axis=0, ignore_index=True).drop_duplicates()
+        
+            ArqManipulation.save_df_to_parquet(df = df_cleared, parquet_file_name="./bin/actions_workflow.parquet")
 
             return df.set_index('name')
 
@@ -204,7 +205,7 @@ class ActionsJobs:
     A class to interact with GitHub Actions jobs using the GitHub CLI.
     """
 
-    def __init__(self, repository, workflow):
+    def __init__(self, repository):
         """
         Initializes the ActionsJobs class.
 
@@ -212,7 +213,6 @@ class ActionsJobs:
         :param workflow: Workflow associated with the jobs.
         """
         self.repository = repository
-        self.workflow = workflow  
 
     def __retrieve_jobs__(self, database_id: int):
         command = f'gh run --repo {self.repository} view {database_id}'
@@ -228,9 +228,10 @@ class ActionsJobs:
             :return: A Pandas DataFrame containing job details.
             """
             try:
-                jobs_df = ArqManipulation.read_parquet_file(parquet_file_name="./bin/actionsJobs.parquet")
+                saved_parquet_df = ArqManipulation.read_parquet_file(parquet_file_name="./bin/actionsJobs.parquet")
+                jobs_df = pd.DataFrame()
 
-                if jobs_df.empty:
+                if saved_parquet_df.empty:
                     data = self.__retrieve_jobs__(database_id=database_id)
                     jobs_df = self.__clean_job_text__(data)
 
@@ -238,14 +239,13 @@ class ActionsJobs:
 
                     ArqManipulation.save_df_to_parquet(jobs_df, parquet_file_name="./bin/actionsJobs.parquet")
 
-                elif not database_id in jobs_df['databaseId'].values:
+                elif not database_id in saved_parquet_df['databaseId'].values:
                     data = self.__retrieve_jobs__(database_id=database_id)
                     data_df = self.__clean_job_text__(data)
                     data_df["databaseId"] = int(database_id)
 
-                    jobs_df = pd.concat([jobs_df, data_df], ignore_index=True)
-
-                    #ArqManipulation.save_df_to_parquet(jobs_df, parquet_file_name="./bin/actionsJobs.parquet")
+                    jobs_df = pd.concat([saved_parquet_df, data_df], axis=0, ignore_index=True).drop_duplicates()
+                    ArqManipulation.save_df_to_parquet(jobs_df, parquet_file_name="./bin/actionsJobs.parquet")
 
                 return jobs_df
 
@@ -297,7 +297,6 @@ class ActionsJobs:
         jobs_df["jobId"] = jobs_df["jobId"].str.rstrip(")").astype('int')
         return jobs_df
 
-
     def __find_jobs__(self, base_str: str) -> list[str]:
         lines = base_str.splitlines()
         arr = []  # Stores grouped sections
@@ -342,7 +341,7 @@ class ActionsJobs:
         except Exception as e:
             print(f"Error processing job text: {e}")
             return pd.DataFrame()
-   
+
 def str_time_to_int(time_str: str) -> int:
     """
     Converts a time string to seconds.
