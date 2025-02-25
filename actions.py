@@ -229,26 +229,24 @@ class ActionsJobs:
             :return: A Pandas DataFrame containing job details.
             """
             try:
-                saved_parquet_df = ArqManipulation.read_parquet_file(parquet_file_name="./bin/actionsJobs.parquet")
+                saved_parquet_df = ArqManipulation.read_parquet_file(parquet_file_name="./bin/actions_jobs.parquet")
                 jobs_df = pd.DataFrame()
 
                 if saved_parquet_df.empty:
-                    print('empty')
                     data = self.__retrieve_jobs__(database_id=database_id)
                     jobs_df = self.__clean_job_text__(data)
 
                     jobs_df["databaseId"] = int(database_id)
 
-                    ArqManipulation.save_df_to_parquet(jobs_df, parquet_file_name="./bin/actionsJobs.parquet")
+                    ArqManipulation.save_df_to_parquet(jobs_df, parquet_file_name="./bin/actions_jobs.parquet")
 
                 elif database_id not in saved_parquet_df['databaseId'].values:
-                    print('not here')
                     data = self.__retrieve_jobs__(database_id=database_id)
                     data_df = self.__clean_job_text__(data)
                     data_df["databaseId"] = int(database_id)
 
                     jobs_df = pd.concat([saved_parquet_df, data_df], axis=0, ignore_index=True).drop_duplicates()
-                    ArqManipulation.save_df_to_parquet(jobs_df, parquet_file_name="./bin/actionsJobs.parquet")
+                    ArqManipulation.save_df_to_parquet(jobs_df, parquet_file_name="./bin/actions_jobs.parquet")
 
                 return pd.concat([saved_parquet_df, jobs_df])
 
