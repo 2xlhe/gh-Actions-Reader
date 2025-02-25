@@ -6,6 +6,12 @@ import subprocess
 import re
 import json
 
+paths = {
+    'workflow':'./bin/actions_workflow.parquet',
+    'jobs':'./bin/actions_jobs.parquet',
+    }
+
+
 class ArqManipulation:
     """
     A utility class for file operations and data manipulation.
@@ -190,10 +196,10 @@ class ActionsWorkflow:
             parsed_json = ArqManipulation.parse_stdout_json(output_json)
             df = ArqManipulation.json_to_df(parsed_json)
 
-            saved_parquet_df = ArqManipulation.read_parquet_file('./bin/actions_workflow.parquet')
+            saved_parquet_df = ArqManipulation.read_parquet_file(paths.get('workflow'))
             df_cleared = pd.concat([saved_parquet_df, df], axis=0, ignore_index=True).drop_duplicates()
         
-            ArqManipulation.save_df_to_parquet(df = df_cleared, parquet_file_name="./bin/actions_workflow.parquet")
+            ArqManipulation.save_df_to_parquet(df = df_cleared, parquet_file_name=paths.get('workflow'))
 
             return df.set_index('name')
 
@@ -229,7 +235,7 @@ class ActionsJobs:
             :return: A Pandas DataFrame containing job details.
             """
             try:
-                saved_parquet_df = ArqManipulation.read_parquet_file(parquet_file_name="./bin/actions_jobs.parquet")
+                saved_parquet_df = ArqManipulation.read_parquet_file(parquet_file_name=paths.get('jobs'))
                 jobs_df = pd.DataFrame()
 
                 if saved_parquet_df.empty:
@@ -238,7 +244,7 @@ class ActionsJobs:
 
                     jobs_df["databaseId"] = int(database_id)
 
-                    ArqManipulation.save_df_to_parquet(jobs_df, parquet_file_name="./bin/actions_jobs.parquet")
+                    ArqManipulation.save_df_to_parquet(jobs_df, parquet_file_name=paths.get('jobs'))
 
                 elif database_id not in saved_parquet_df['databaseId'].values:
                     data = self.__retrieve_jobs__(database_id=database_id)
@@ -246,7 +252,7 @@ class ActionsJobs:
                     data_df["databaseId"] = int(database_id)
 
                     jobs_df = pd.concat([saved_parquet_df, data_df], axis=0, ignore_index=True).drop_duplicates()
-                    ArqManipulation.save_df_to_parquet(jobs_df, parquet_file_name="./bin/actions_jobs.parquet")
+                    ArqManipulation.save_df_to_parquet(jobs_df, parquet_file_name=paths.get('jobs'))
 
                 return pd.concat([saved_parquet_df, jobs_df])
 

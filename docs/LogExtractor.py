@@ -3,6 +3,13 @@ import pandas as pd
 import re
 from numpy.lib.stride_tricks import sliding_window_view as swv
 
+
+paths = {
+    'status':'./bin/pytest.status.log.parquet',
+    'categories':'./bin/pytest.categories.log.parquet',
+    'failures':'./bin/pytest.failures.log.parquet',
+    }
+
 class PytestArtifactLogExtractor:
     """f
     A class to extract and process test status and timing information from a pytest artifact log.
@@ -39,9 +46,9 @@ class PytestArtifactLogExtractor:
         databaseId = int(databaseId) if databaseId else 000000
     
         # Checking if artifacts is not already stored
-        df_status_parquet = ArqManipulation.read_parquet_file(parquet_file_name='./bin/pytest.status.log.parquet')   
-        df_categories_parquet = ArqManipulation.read_parquet_file(parquet_file_name='./bin/pytest.categories.log.parquet')   
-        df_failures_parquet = ArqManipulation.read_parquet_file(parquet_file_name='./bin/pytest.failures.log.parquet')   
+        df_status_parquet = ArqManipulation.read_parquet_file(parquet_file_name=paths.get('status'))   
+        df_categories_parquet = ArqManipulation.read_parquet_file(parquet_file_name=paths.get('categories'))   
+        df_failures_parquet = ArqManipulation.read_parquet_file(parquet_file_name=paths.get('failures'))   
         
         # Creating dataframes test status and categories
         tests, categories, failures = self.__extract_all_categories__()
@@ -68,9 +75,9 @@ class PytestArtifactLogExtractor:
          
 
         # Save the concatenated DataFrames back to Parquet files
-        ArqManipulation.save_df_to_parquet(df=concated_dfs[0], parquet_file_name='./bin/pytest.status.log.parquet')
-        ArqManipulation.save_df_to_parquet(df=concated_dfs[1], parquet_file_name='./bin/pytest.categories.log.parquet')
-        ArqManipulation.save_df_to_parquet(df=concated_dfs[2], parquet_file_name='./bin/pytest.failures.log.parquet')
+        ArqManipulation.save_df_to_parquet(df=concated_dfs[0], parquet_file_name=paths.get('status'))
+        ArqManipulation.save_df_to_parquet(df=concated_dfs[1], parquet_file_name=paths.get('categories'))
+        ArqManipulation.save_df_to_parquet(df=concated_dfs[2], parquet_file_name=paths.get('failures'))
 
         return concated_dfs
 
