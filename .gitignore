@@ -3,3 +3,6 @@
 
 # Ignores all the saved parquets
 /bin/*
+
+# Pdf
+*.pdf

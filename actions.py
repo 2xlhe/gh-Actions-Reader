@@ -115,7 +115,8 @@ class ActionsArtifacts:
             # Ensure the folder exists before downloading
             os.makedirs(self.folder, exist_ok=True)
             # Finding the artifacts that have yet to be downloaded
-            to_download = self.jobIds.difference(set(p.split('/')[1] for p in self.paths))
+            downloaded_paths = set(int(p.split('/')[1]) for p in self.paths)
+            to_download = self.jobIds.difference(downloaded_paths)
 
             for database_id in to_download:
             # Construct the command to download the artifact
@@ -232,6 +233,7 @@ class ActionsJobs:
                 jobs_df = pd.DataFrame()
 
                 if saved_parquet_df.empty:
+                    print('empty')
                     data = self.__retrieve_jobs__(database_id=database_id)
                     jobs_df = self.__clean_job_text__(data)
 
@@ -239,7 +241,8 @@ class ActionsJobs:
 
                     ArqManipulation.save_df_to_parquet(jobs_df, parquet_file_name="./bin/actionsJobs.parquet")
 
-                elif not database_id in saved_parquet_df['databaseId'].values:
+                elif database_id not in saved_parquet_df['databaseId'].values:
+                    print('not here')
                     data = self.__retrieve_jobs__(database_id=database_id)
                     data_df = self.__clean_job_text__(data)
                     data_df["databaseId"] = int(database_id)
@@ -247,7 +250,7 @@ class ActionsJobs:
                     jobs_df = pd.concat([saved_parquet_df, data_df], axis=0, ignore_index=True).drop_duplicates()
                     ArqManipulation.save_df_to_parquet(jobs_df, parquet_file_name="./bin/actionsJobs.parquet")
 
-                return jobs_df
+                return pd.concat([saved_parquet_df, jobs_df])
 
             except subprocess.CalledProcessError as e:
                 print(f"Error executing GitHub CLI command: {e}")
