@@ -1,7 +1,7 @@
 import LogExtractor as extractor
 import pandas as pd
 import argparse
-from docs.createPdf import PdfMaker
+from createPdf import PdfMaker
 from actions import ActionsWorkflow, ActionsJobs, ActionsArtifacts
 import re
 
