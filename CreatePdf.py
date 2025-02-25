@@ -10,8 +10,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import plotly.express as px
 import tempfile
-import os
-import kaleido
 
 class PdfDataPlotter:
     def __init__(self, status_df, categories_df, failures_df):

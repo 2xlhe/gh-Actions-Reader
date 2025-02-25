@@ -3,7 +3,6 @@ import json
 import subprocess
 import re
 import os
-import shutil
 
 
 class ArqManipulation:

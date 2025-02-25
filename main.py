@@ -54,8 +54,6 @@ def pdf_params():
 
 if __name__ == '__main__':
     args = pdf_params()
-    print(args.final_date)
-
 
     print('Querying Workflows...')
     workflow = ActionsWorkflow(repository=args.repo_path, query_size=args.query_size)
