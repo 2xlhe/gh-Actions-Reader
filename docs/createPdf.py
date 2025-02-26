@@ -19,6 +19,7 @@ class PdfDataPlotter:
 
         self.category_status_df = self.status_df[['category', 'status']]
 
+
     def error_distribution_pie_chart(self):
         error_distribution_df = self.status_df
 
@@ -161,15 +162,13 @@ class PdfMaker:
         }
 
     def get_time(self, metric):
-        return pd.Series(dict(map(lambda t, x: (x, self.categories_df.loc[self.categories_df.index == t, metric].sum()), self.status_df.index.unique(), self.status_df.category.unique())))
+        time = pd.Series(dict(map(lambda t, x: (x, self.categories_df.loc[self.categories_df.index == t, metric].sum()), self.status_df.index.unique(), self.status_df.category.unique())))
+    
+        return time
 
     def __create_df__(self):
-        # Setup
-        error_passed_info = self.status_df.groupby(['status','category'])
-        status_freq_df = pd.DataFrame([error_passed_info.value_counts().FAILED, error_passed_info.value_counts().PASSED]).fillna(0).astype(int).reset_index().T
-        status_freq_df.columns = ['FAILED','PASSED']
-
         # Count the total duration of each category
+        error_passed_info = self.status_df.groupby(by=['category','status'])
         count_df = error_passed_info.size().unstack('status').fillna(0).astype(int)
         count_df['total'] = count_df.sum(axis=1)
 

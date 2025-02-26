@@ -127,7 +127,7 @@ class ActionsArtifacts:
             for database_id in to_download:
             # Construct the command to download the artifact
                 command=f'gh run --repo {self.repository} download {database_id} --dir {os.path.join(self.folder, str(database_id))}'
-                subprocess.run(command, shell=True, text=True, check=False)
+                subprocess.run(command, shell=True, text=True, check=False, capture_output=True)
         except Exception as e:
             print(f"Unexpected error: {e}")
 

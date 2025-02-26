@@ -49,7 +49,7 @@ class PytestArtifactLogExtractor:
         df_status_parquet = ArqManipulation.read_parquet_file(parquet_file_name=paths.get('status'))   
         df_categories_parquet = ArqManipulation.read_parquet_file(parquet_file_name=paths.get('categories'))   
         df_failures_parquet = ArqManipulation.read_parquet_file(parquet_file_name=paths.get('failures'))   
-        
+
         # Creating dataframes test status and categories
         tests, categories, failures = self.__extract_all_categories__()
         status_df = self.__create_status_df__(tests)
@@ -65,7 +65,7 @@ class PytestArtifactLogExtractor:
         status_df['databaseId'] = databaseId
         categories_df['databaseId'] = databaseId
         failures_df['databaseId'] = databaseId
-
+ 
 
         # Since there is data on the parquets, concatenating both
         concated_dfs = (pd.concat([df_status_parquet, status_df], axis=0).drop_duplicates(),
@@ -217,13 +217,17 @@ class PytestArtifactLogExtractor:
     def __create_status_df__(self, data):
         formatted_data = []
 
-        for d in data:
-            if 'live_log' not in d:
-                formatted_data.append(d)
+        try:
+            for d in data:
+                if 'live_log' not in d:
+                    formatted_data.append(d)
 
-        df = pd.DataFrame(formatted_data, columns=["status", "category", "name", "arguments"])
-        df['name'] = df['name'].astype(str).str.replace(" ", "", regex=True)
-        df = df.set_index('name')
+            df = pd.DataFrame(formatted_data, columns=["status", "category", "name", "arguments"])
+            df['name'] = df['name'].astype(str).str.replace(" ", "", regex=True)
+            df = df.set_index('name')
+        except:
+            print('None Type')
+            return pd.DataFrame()
         return df
 
     def __create_time_df__(self, data):
